@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalın Bağırsak Master - AYT Biyoloji</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f2f5; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15); }
+        .btn-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .matching-item { cursor: pointer; transition: all 0.2s; user-select: none; }
+        .selected-item { border: 3px solid #3b82f6 !important; background-color: #eff6ff !important; transform: scale(1.02); }
+        .correct-match { background-color: #dcfce7 !important; border-color: #22c55e !important; pointer-events: none; opacity: 0.8; }
+        .badge-animation { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-20px);} 60% {transform: translateY(-10px);} }
+        
+        /* Custom Modal Style */
+        #custom-modal { z-index: 1000; }
+        .modal-content { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 md:p-8">
+
+    <!-- Özel Modal (Alert/Confirm Yerine) -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+        <div class="modal-content glass max-w-sm w-full p-6 text-center">
+            <div id="modal-icon" class="text-4xl mb-4">⚠️</div>
+            <h3 id="modal-title" class="text-xl font-bold mb-2">Emin misiniz?</h3>
+            <p id="modal-text" class="text-gray-600 mb-6 text-sm">Sınavı bırakırsanız ilerlemeniz kaybolacaktır.</p>
+            <div class="flex gap-3 justify-center">
+                <button id="modal-cancel" class="px-6 py-2 bg-gray-200 rounded-lg font-medium">Vazgeç</button>
+                <button id="modal-confirm" class="px-6 py-2 bg-red-600 text-white rounded-lg font-medium">Evet, Bırak</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="max-w-4xl mx-auto w-full flex-grow">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-900 mb-2">Kalın Bağırsak Anatomisi ve Fizyolojisi</h1>
+            <p class="text-gray-500 font-medium">2024 MEB Müfredatı | AYT Kazanım Odaklı</p>
+        </header>
+
+        <!-- Bölüm 1: Giriş -->
+        <div id="intro-screen" class="glass p-8 text-center border-b-8 border-blue-600">
+            <div class="mb-6 flex justify-center">
+                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-4xl shadow-inner">🩺</div>
+            </div>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Hazır mısın Şampiyon?</h2>
+            <div class="text-left space-y-4 mb-8 text-gray-700 bg-white/50 p-6 rounded-2xl">
+                <p>Bu uygulama <b>Kalın Bağırsak</b> fizyolojisini kalıcı öğrenmen için tasarlandı. Sınav içeriği:</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-medium">
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-500 rounded-full"></span> 5 Klasik Çoktan Seçmeli</div>
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 bg-purple-500 rounded-full"></span> 5 Analitik Çoklu Seçim</div>
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full"></span> 5 Doğru / Yanlış</div>
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 bg-orange-500 rounded-full"></span> 5 Görsel Eşleştirme</div>
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 bg-red-500 rounded-full"></span> 5 Süreç Sıralama</div>
+                </div>
+            </div>
+            <button onclick="startQuiz()" class="bg-blue-600 text-white px-12 py-4 rounded-2xl font-bold text-xl btn-hover w-full shadow-lg shadow-blue-200">
+                DENEMEYİ BAŞLAT 🚀
+            </button>
+        </div>
+
+        <!-- Bölüm 2: Sınav Alanı -->
+        <div id="quiz-screen" class="hidden glass p-6 md:p-10 relative">
+            <div class="flex justify-between items-center mb-8">
+                <div id="question-counter" class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-md">Soru: 1 / 25</div>
+                <button onclick="askQuit()" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors uppercase tracking-wider border border-red-100">Sınavı Bırak</button>
+            </div>
+
+            <div id="question-container" class="min-h-[350px]">
+                <!-- Sorular Dinamik Olarak Buraya Gelecek -->
+            </div>
+
+            <div id="feedback-area" class="hidden mt-8 p-6 rounded-2xl text-center shadow-sm">
+                <!-- Bildirimler -->
+            </div>
+
+            <div class="mt-8 flex justify-between items-center border-t pt-6 border-gray-100">
+                <p class="text-xs text-gray-400 italic">Cevaplamak için seçeneklere dokun!</p>
+                <div class="flex gap-4">
+                    <button id="check-btn" onclick="checkAnswer()" class="bg-indigo-600 text-white px-10 py-3 rounded-xl font-bold btn-hover shadow-lg shadow-indigo-100">Cevabı Onayla</button>
+                    <button id="next-btn" onclick="nextQuestion()" class="hidden bg-gray-900 text-white px-10 py-3 rounded-xl font-bold btn-hover">Sıradaki Soru ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bölüm 3: Sonuç Raporu -->
+        <div id="result-screen" class="hidden glass p-8 text-center border-t-8 border-green-500">
+            <h2 class="text-3xl font-black mb-2 text-gray-800">KARNEN HAZIR!</h2>
+            <p class="text-gray-500 mb-8 font-medium">Performansını aşağıdan inceleyebilirsin</p>
+            
+            <div id="badge-container" class="mb-10 badge-animation flex flex-col items-center">
+                <div class="text-8xl mb-2">🏆</div>
+                <div id="badge-text" class="bg-yellow-400 text-yellow-900 px-6 py-1 rounded-full font-black text-xs uppercase">Biyoloji Profesörü</div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-xs font-bold text-gray-400 uppercase mb-1">Toplam</p>
+                    <p class="text-3xl font-black text-gray-800">25</p>
+                </div>
+                <div class="bg-green-50 p-5 rounded-2xl shadow-sm border border-green-100">
+                    <p class="text-xs font-bold text-green-400 uppercase mb-1">Doğru</p>
+                    <p id="res-correct" class="text-3xl font-black text-green-600">0</p>
+                </div>
+                <div class="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-100">
+                    <p class="text-xs font-bold text-red-400 uppercase mb-1">Yanlış</p>
+                    <p id="res-wrong" class="text-3xl font-black text-red-600">0</p>
+                </div>
+                <div class="bg-blue-50 p-5 rounded-2xl shadow-sm border border-blue-100">
+                    <p class="text-xs font-bold text-blue-400 uppercase mb-1">Başarı</p>
+                    <p id="res-percent" class="text-3xl font-black text-blue-600">%0</p>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="bg-gray-800 text-white px-12 py-4 rounded-2xl font-bold text-lg btn-hover w-full md:w-auto">
+                YENİDEN BAŞLA 🔄
+            </button>
+            <p class="text-gray-400 text-[10px] mt-8 uppercase tracking-widest font-bold">Paylaş ve Arkadaşlarına Meydan Oku!</p>
+        </div>
+    </div>
+
+    <!-- Footer Tasarım İmzası -->
+    <footer class="mt-8 text-center py-6">
+        <p class="text-gray-400 font-bold tracking-[0.3em] text-[10px] uppercase opacity-60">Tasarım: Naci Karhan - 2026- Her Hakkı Saklıdır</p>
+    </footer>
+
+    <script>
+        // Soru Bankası
+        const questionBank = [
+            // Klasik MC
+            { type: 'mc', q: "Kalın bağırsak ile ince bağırsağı birbirine bağlayan ilk bölüme ne ad verilir?", options: ["Rektum", "Anüs", "Çekum", "Yatay Kolon", "Duodenum"], correct: 2, explanation: "İnce bağırsağın kalın bağırsakla birleştiği çıkmaz uçlu ilk bölüme Çekum (Kör Bağırsak) denir." },
+            { type: 'mc', q: "Kalın bağırsakta emilimi en yoğun şekilde gerçekleşen temel madde hangisidir?", options: ["Glikoz", "Su ve Mineraller", "Yağ Asitleri", "Amino Asitler", "Proteinler"], correct: 1, explanation: "Kalın bağırsağın ana görevi su ve elektrolitlerin (minerallerin) geri emilimidir. Besin monomerleri ince bağırsakta emilir." },
+            { type: 'mc', q: "Apandisitin iltihaplanması sonucu ortaya çıkan klinik durum hangisidir?", options: ["Ülser", "Kolit", "Apandisit", "Gastrit", "Hemoroid"], correct: 2, explanation: "Çekumun ucundaki apandis denilen lenfoid doku parçasının iltihabına apandisit denir." },
+            { type: 'mc', q: "Kalın bağırsakta mutualist yaşayan bakteriler hangi vitaminleri sentezler?", options: ["A ve D", "B ve K", "C ve E", "B12 ve D", "Sadece B"], correct: 1, explanation: "Bağırsak florası B ve K vitaminlerini sentezleyerek insan metabolizmasına katkıda bulunur." },
+            { type: 'mc', q: "Aşağıdaki anatomik kısımlardan hangisi kalın bağırsağa ait değildir?", options: ["Kolon", "Rektum", "Çekum", "Vilus", "Apandis"], correct: 3, explanation: "Viluslar emilim yüzeyini artırmak için sadece ince bağırsakta bulunur. Kalın bağırsak iç yüzeyi nispeten düzdür." },
+            // Çoklu Seçim
+            { type: 'multi', q: "Kalın bağırsağın temel fonksiyonları nelerdir?", options: ["Su ve mineral emilimi", "K vitamini sentezi desteği", "Besinlerin kimyasal sindirimi", "Atıkların geçici depolanması"], correct: [0, 1, 3], explanation: "Kalın bağırsakta kimyasal sindirim gerçekleşmez; sindirim enzimi üretilmez." },
+            { type: 'multi', q: "Hangi durumlar kalın bağırsak florasını olumsuz etkileyebilir?", options: ["Bilinçsiz antibiyotik kullanımı", "Yüksek lifli gıdalarla beslenme", "Bağırsak enfeksiyonları", "Probiyotik kullanımı"], correct: [0, 2], explanation: "Antibiyotikler yararlı bakterileri öldürür. Lifli gıdalar ve probiyotikler ise florayı korur." },
+            { type: 'multi', q: "Kalın bağırsak kolon bölümleri hangileridir?", options: ["Çıkan kolon", "Yatay kolon", "İnen kolon", "Pilorik kolon"], correct: [0, 1, 2], explanation: "Kalın bağırsak çıkan, yatay, inen ve S şekilli (Sigmoid) kolon bölümlerinden oluşur." },
+            { type: 'multi', q: "Rektum ve anüs ile ilgili hangileri doğrudur?", options: ["Dışkı geçici olarak rektumda depolanır", "Anüs tek bir düz kas sfinkterinden oluşur", "Dışkılama refleksi otonom ve iradi kontrol altındadır", "Burada aktif besin emilimi yapılır"], correct: [0, 2], explanation: "Anüste hem çizgili hem düz kas vardır. Besin emilimi burada yapılmaz." },
+            { type: 'multi', q: "Bağırsak sağlığı için hangileri önemlidir?", options: ["Bol su tüketimi", "Hareketsiz yaşam", "Lifli besinler", "Öğün atlamak"], correct: [0, 2], explanation: "Su ve lif, dışkının ilerlemesini ve kabızlığın önlenmesini sağlar." },
+            // D/Y
+            { type: 'tf', q: "Kalın bağırsakta kimyasal sindirimi sağlayan enzimler salgılanır.", correct: false, explanation: "Hatalı! Kalın bağırsakta sindirim enzimi salgılanmaz, sadece mukus salgılanır." },
+            { type: 'tf', q: "Su emilimi azaldığında dışkı sıvılaşır ve ishal (diyare) meydana gelir.", correct: true, explanation: "Doğru! Su emilemediğinde dışkıdaki sıvı miktarı artar." },
+            { type: 'tf', q: "Kalın bağırsağın boyu ortalama 1.5 metredir.", correct: true, explanation: "Doğru! Anatomik olarak ince bağırsaktan daha kısa ama çapı daha geniştir." },
+            { type: 'tf', q: "Bağırsaktaki B ve K vitaminlerinin emilimi kalın bağırsakta yapılır.", correct: true, explanation: "Doğru! Bakterilerce sentezlenen bu vitaminler buradan emilir." },
+            { type: 'tf', q: "Viluslar kalın bağırsakta yüzey alanını 30 kat artırır.", correct: false, explanation: "Hatalı! Kalın bağırsakta vilus bulunmaz, o ince bağırsağa has bir özelliktir." },
+            // Eşleştirme
+            { type: 'match', q: "Kavramları doğru açıklamalarıyla eşleştiriniz.", pairs: [
+                { left: "Kolit", right: "Bağırsak iltihabı" },
+                { left: "Hemoroid", right: "Rektal damar genişlemesi" },
+                { left: "Diyare", right: "Aşırı sulu dışkı" },
+                { left: "Konstipasyon", right: "Kabızlık durumu" },
+                { left: "Sfinkter", right: "Kasılan büzgen kas" }
+            ]},
+            { type: 'match', q: "Salgı-Organ eşleştirmesi yapınız.", pairs: [
+                { left: "Safra", right: "Karaciğer" },
+                { left: "Pepsinojen", right: "Mide" },
+                { left: "Enterokinaz", right: "İnce Bağırsak" },
+                { left: "İnsülin", right: "Pankreas" },
+                { left: "Mukus", right: "Kalın Bağırsak" }
+            ]},
+            { type: 'match', q: "Anatomik bölgeleri tanımlayın.", pairs: [
+                { left: "Çekum", right: "Kör uçlu başlangıç" },
+                { left: "Anüs", right: "Boşaltım deliği" },
+                { left: "Kolon", right: "Geniş orta segment" },
+                { left: "Rektum", right: "Düzleşen son kısım" },
+                { left: "Valf", right: "Geri dönüşü önleyen kapak" }
+            ]},
+            { type: 'match', q: "Molekül-Emilim eşleştirmesi yapınız.", pairs: [
+                { left: "Su", right: "Pasif taşıma / Osmoz" },
+                { left: "Sodyum", right: "Aktif taşıma" },
+                { left: "B Vitamini", right: "Bakteriyel kaynaklı emilim" },
+                { left: "Selüloz", right: "Atık olarak kalır" },
+                { left: "İlaçlar", right: "Bazı mukoza emilimleri" }
+            ]},
+            { type: 'match', q: "Enzim-Besin eşleştirmesi yapınız (Genel Bilgi).", pairs: [
+                { left: "Amilaz", right: "Nişasta" },
+                { left: "Lipaz", right: "Yağ" },
+                { left: "Tripsin", right: "Protein" },
+                { left: "Nükleaz", right: "Nükleik Asit" },
+                { left: "Laktaz", right: "Süt Şekeri" }
+            ]},
+            // Sıralama
+            { type: 'order', q: "Sindirim atığının izlediği yolu baştan sona sıralayınız.", items: ["İnce Bağırsak Sonu", "Kör Bağırsak", "Yatay Kolon", "İnen Kolon", "Düz Bağırsak (Rektum)"], correctOrder: [0, 1, 2, 3, 4] },
+            { type: 'order', q: "Anatomik kolon bölümlerini yukarıdan aşağıya (akış yönüne göre) dizin.", items: ["İleum (İnce B.)", "Çıkan Kolon", "Yatay Kolon", "İnen Kolon", "Sigmoid Kolon"], correctOrder: [0, 1, 2, 3, 4] },
+            { type: 'order', q: "Dışkılama mekanizmasını sıralayın.", items: ["Atıkların rektuma girmesi", "Reseptörlerin gerilmesi", "Sinyalin beyne gitmesi", "İç kasın gevşemesi", "İsteğe bağlı dışkılama"], correctOrder: [0, 1, 2, 3, 4] },
+            { type: 'order', q: "Bir suyun vücuttan atılana kadar geçtiği sindirim kanallarını dizin.", items: ["Özofagus", "Mide", "Pilor", "İnce Bağırsak", "Kalın Bağırsak"], correctOrder: [0, 1, 2, 3, 4] },
+            { type: 'order', q: "Sindirimin bölümlerini baştan sona dizin.", items: ["Mekanik Sindirim", "Kimyasal Sindirim", "Emilim", "Geri Emilim", "Defekasyon (Dışkılama)"], correctOrder: [0, 1, 2, 3, 4] }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = { correct: 0, wrong: 0 };
+        let quizQuestions = [];
+        let selectedMatchLeft = null;
+        let matchesFound = 0;
+
+        // Gerçek Rastgele Karıştırma (Fisher-Yates)
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // Custom Modal Logic
+        function showModal(title, text, confirmCallback, icon = "⚠️") {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('modal-icon').innerText = icon;
+            modal.classList.remove('hidden');
+
+            const confirmBtn = document.getElementById('modal-confirm');
+            const cancelBtn = document.getElementById('modal-cancel');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                confirmBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            confirmBtn.onclick = () => { confirmCallback(); cleanup(); };
+            cancelBtn.onclick = cleanup;
+        }
+
+        function askQuit() {
+            showModal("Sınavı Bırak?", "Henüz sınavı bitirmedin. Çıkmak istediğine emin misin?", () => {
+                location.reload();
+            });
+        }
+
+        function startQuiz() {
+            document.getElementById('intro-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            quizQuestions = shuffle([...questionBank]);
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const qData = quizQuestions[currentQuestionIndex];
+            const container = document.getElementById('question-container');
+            const feedback = document.getElementById('feedback-area');
+            const checkBtn = document.getElementById('check-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            feedback.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            checkBtn.classList.remove('hidden');
+            document.getElementById('question-counter').innerText = `Soru: ${currentQuestionIndex + 1} / 25`;
+            
+            container.innerHTML = `<h3 class="text-xl font-bold text-gray-800 mb-6 leading-relaxed">${qData.q}</h3>`;
+
+            if (qData.type === 'mc') {
+                const optDiv = document.createElement('div');
+                optDiv.className = 'space-y-3';
+                qData.options.forEach((opt, i) => {
+                    optDiv.innerHTML += `<div onclick="selectRadio(this)" class="p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-blue-50 transition-all flex items-center gap-3 font-medium text-gray-700">
+                        <input type="radio" name="ans" value="${i}" class="w-5 h-5"> <span>${opt}</span>
+                    </div>`;
+                });
+                container.appendChild(optDiv);
+            } else if (qData.type === 'multi') {
+                const optDiv = document.createElement('div');
+                optDiv.className = 'space-y-3';
+                qData.options.forEach((opt, i) => {
+                    optDiv.innerHTML += `<div onclick="selectCheck(this)" class="p-4 border-2 border-gray-100 rounded-2xl cursor-pointer hover:bg-purple-50 transition-all flex items-center gap-3 font-medium text-gray-700">
+                        <input type="checkbox" name="ans" value="${i}" class="w-5 h-5"> <span>${opt}</span>
+                    </div>`;
+                });
+                container.appendChild(optDiv);
+            } else if (qData.type === 'tf') {
+                container.innerHTML += `<div class="grid grid-cols-2 gap-4 pt-4">
+                    <button onclick="checkTF(true)" class="py-8 rounded-3xl bg-green-50 border-2 border-green-200 text-green-700 font-black text-2xl hover:bg-green-100 transition-all">DOĞRU</button>
+                    <button onclick="checkTF(false)" class="py-8 rounded-3xl bg-red-50 border-2 border-red-200 text-red-700 font-black text-2xl hover:bg-red-100 transition-all">YANLIŞ</button>
+                </div>`;
+                checkBtn.classList.add('hidden');
+            } else if (qData.type === 'match') {
+                matchesFound = 0;
+                selectedMatchLeft = null;
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-2 gap-4';
+                
+                const lefts = shuffle(qData.pairs.map((p, i) => ({ t: p.left, id: i })));
+                const rights = shuffle(qData.pairs.map((p, i) => ({ t: p.right, id: i })));
+
+                let lCol = '<div class="space-y-2">';
+                lefts.forEach(item => lCol += `<div id="l-${item.id}" onclick="matchClick('l', ${item.id})" class="matching-item p-3 bg-white border-2 border-gray-200 rounded-xl text-xs font-bold shadow-sm">${item.t}</div>`);
+                lCol += '</div>';
+
+                let rCol = '<div class="space-y-2">';
+                rights.forEach(item => rCol += `<div id="r-${item.id}" onclick="matchClick('r', ${item.id})" class="matching-item p-3 bg-white border-2 border-gray-200 rounded-xl text-xs font-bold shadow-sm">${item.t}</div>`);
+                rCol += '</div>';
+
+                grid.innerHTML = lCol + rCol;
+                container.appendChild(grid);
+                checkBtn.classList.add('hidden');
+            } else if (qData.type === 'order') {
+                const list = document.createElement('div');
+                list.id = "order-list";
+                list.className = 'space-y-2';
+                let items = shuffle(qData.items.map((t, i) => ({ t, id: i })));
+                items.forEach(item => {
+                    list.innerHTML += `<div data-id="${item.id}" class="flex items-center justify-between p-4 bg-white border-2 border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-bold text-gray-700">${item.t}</span>
+                        <div class="flex gap-1">
+                            <button onclick="move(this, -1)" class="w-8 h-8 bg-gray-100 rounded-lg font-bold">↑</button>
+                            <button onclick="move(this, 1)" class="w-8 h-8 bg-gray-100 rounded-lg font-bold">↓</button>
+                        </div>
+                    </div>`;
+                });
+                container.appendChild(list);
+            }
+        }
+
+        // Selection Helpers
+        function selectRadio(el) { el.querySelector('input').checked = true; }
+        function selectCheck(el) { el.querySelector('input').checked = !el.querySelector('input').checked; }
+        function move(btn, dir) {
+            const item = btn.closest('[data-id]');
+            if (dir === -1 && item.previousElementSibling) item.parentNode.insertBefore(item, item.previousElementSibling);
+            else if (dir === 1 && item.nextElementSibling) item.parentNode.insertBefore(item.nextElementSibling, item);
+        }
+
+        function matchClick(side, id) {
+            const el = document.getElementById(`${side}-${id}`);
+            if (el.classList.contains('correct-match')) return;
+
+            if (side === 'l') {
+                if (selectedMatchLeft !== null) document.getElementById(`l-${selectedMatchLeft}`).classList.remove('selected-item');
+                selectedMatchLeft = id;
+                el.classList.add('selected-item');
+            } else {
+                if (selectedMatchLeft !== null) {
+                    if (selectedMatchLeft === id) {
+                        el.classList.add('correct-match');
+                        document.getElementById(`l-${id}`).classList.add('correct-match');
+                        matchesFound++;
+                        selectedMatchLeft = null;
+                        if (matchesFound === quizQuestions[currentQuestionIndex].pairs.length) showFeedback(true);
+                    } else {
+                        el.classList.add('bg-red-50', 'border-red-300');
+                        setTimeout(() => el.classList.remove('bg-red-50', 'border-red-300'), 400);
+                    }
+                }
+            }
+        }
+
+        function checkTF(val) { showFeedback(val === quizQuestions[currentQuestionIndex].correct); }
+
+        function checkAnswer() {
+            const q = quizQuestions[currentQuestionIndex];
+            let correct = false;
+            if (q.type === 'mc') {
+                const sel = document.querySelector('input[name="ans"]:checked');
+                if (!sel) return;
+                correct = parseInt(sel.value) === q.correct;
+            } else if (q.type === 'multi') {
+                const sels = Array.from(document.querySelectorAll('input[name="ans"]:checked')).map(i => parseInt(i.value));
+                if (sels.length === 0) return;
+                correct = JSON.stringify(sels.sort()) === JSON.stringify(q.correct.sort());
+            } else if (q.type === 'order') {
+                const order = Array.from(document.querySelectorAll('#order-list > div')).map(d => parseInt(d.dataset.id));
+                correct = JSON.stringify(order) === JSON.stringify(q.correctOrder);
+            }
+            showFeedback(correct);
+        }
+
+        function showFeedback(isCorrect) {
+            const fb = document.getElementById('feedback-area');
+            const q = quizQuestions[currentQuestionIndex];
+            fb.classList.remove('hidden');
+            document.getElementById('check-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+
+            if (isCorrect) {
+                score.correct++;
+                fb.innerHTML = `<p class="text-green-600 font-black text-xl mb-1">🔔 TEBRİKLER! (Doğru Cevap Sesi)</p>
+                                <p class="text-green-700/70 text-sm">Bilgi dağarcığına bir tuğla daha ekledin!</p>`;
+                fb.className = "mt-8 p-6 rounded-2xl text-center bg-green-50 border-2 border-green-200";
+            } else {
+                score.wrong++;
+                fb.innerHTML = `<p class="text-red-600 font-black text-xl mb-2">❌ DİKKAT! (Yanlış Cevap Sesi)</p>
+                                <div class="bg-white/60 p-3 rounded-xl text-left border border-red-100">
+                                    <p class="text-gray-800 text-xs font-bold uppercase mb-1">Neden Yanlış?</p>
+                                    <p class="text-gray-600 text-sm leading-relaxed">${q.explanation || "Konuyu tekrar etmelisin."}</p>
+                                </div>`;
+                fb.className = "mt-8 p-6 rounded-2xl text-center bg-red-50 border-2 border-red-200";
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizQuestions.length) showQuestion();
+            else showResults();
+        }
+
+        function showResults() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            const p = Math.round((score.correct / 25) * 100);
+            document.getElementById('res-correct').innerText = score.correct;
+            document.getElementById('res-wrong').innerText = score.wrong;
+            document.getElementById('res-percent').innerText = `%${p}`;
+            
+            const b = document.getElementById('badge-container');
+            const bt = document.getElementById('badge-text');
+            if (p >= 90) { b.querySelector('.text-8xl').innerText = "🔬"; bt.innerText = "Biyoloji Profesörü"; }
+            else if (p >= 70) { b.querySelector('.text-8xl').innerText = "📖"; bt.innerText = "Uzman Araştırmacı"; }
+            else if (p >= 50) { b.querySelector('.text-8xl').innerText = "🌱"; bt.innerText = "Gelişmekte Olan"; }
+            else { b.querySelector('.text-8xl').innerText = "🔋"; bt.innerText = "Daha Çok Çalışmalı"; }
+        }
+    </script>
+</body>
+</html>
